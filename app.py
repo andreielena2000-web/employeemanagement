@@ -1,161 +1,11 @@
-'''
-Web applications
-    - Flask
-    - Jinja2
-    - SQLAlchemy
-'''
-
-'''
-1) Flask
-    - framework de Python (lightweight) folosit pentru a construi site-uri/aplicatii web
-    - ne ajuta cu urmatoarele functionalitati:
-        a) sa legam URL-urile de continutul care trebuie afisat pe site
-        b) sa colectam date dintr-un formular
-        c) sa ne conectam la o baza de date
-        d) sa generam pagini html pe baza datelor si template-urilor
-
-    Instalare:
-    pip install flask
-
-    Concept cheie:
-    route - reprezinta un URL care este legat de o functie in Python
-
-    Exemplu aplicatie basic cu flask:
-        from flask import Flask
-        app = Flask(__name__) # initializeaza aplicatia
-
-        @app.route("/") # cand cineva aceseaza root-ul URL-ului http://localhost:5000/ se va executa functia
-        def home():
-            return "Hello, Flask!"
-
-        if __name__ == "__main__":
-            app.run(debug=True) # ruleaza aplicatia in modul debug si o reinitializeaza automat cand modificam codul
-
-    Template-uri HTML in Flask:
-    - pentru a nu scrie codul nostru HTML in Python, Flask foloseste
-      folderul "templates" pentru a tine fisierele HTML separat
-
-    Exemplu:
-        - cream folderul "templates/" in aceeasi locatie cu aplicatia noastra Flask
-        - in interiorul ei ne definim primul fisier HTML -> index.html
-
-            <h1>Hello, Flask!</h1>
-
-        - in codul din aplicatia noastra Python il folsim in felul urmator:
-            @app.route('/hello') # http://localhost:5000/hello
-            def hello():
-                return render_template('index.html')
-
-    Gestionarea formularelor / Handling Forms:
-    - putem primi ca si input date si sa gestionam informatia in functie de metoda (GET, POST, PUT ...)
-
-    Exemplu:
-        - form.html contine codul html pentru formularul nostru si metoda cu care transmite informatia
-            <form method="POST">
-                <input name="username" />
-                <button type="submit">Go</button>
-            </form>
-
-        - in codul nostru python facem o ruta si o functie care vor gestiona formularul
-            from flask import request
-
-            @app.route("/form", methods=["GET", "POST"])
-            def form():
-                if request.method == "POST":
-                    username = request.form["username"]
-                    return f"Hello {username}"
-                return render_template("form.html")
-                                                                '''
-
-
-'''
-2) Jinja2
-    - ne ajuta sa scriem cod asemanator cu Python in HTML
-
-    Ne ofera urmatoarele posibilitati:
-        - variabile: {{ name }}
-
-        - if statements:
-            {% if age > 18 %}
-                <p>Adult</p>
-            {% endif %}
-
-        - bucle:
-            {% for student in students %}
-                <p> {{ student }} </p>
-            {% endfor %}
-
-        - filtre:
-            {{ name|upper }} <!-- il scrie cu litere mari -->
-'''
-
-
-'''
-3) SQLAlchemy
-    - Biblioteca din Python care ne ajuta sa conectam aplicatioa noastra din Flask cu o baza de date
-    - Nu face parte din pachetul de baza, asa ca trebuie instalata:
-        pip install flask_sqlalchemy
-
-    ORM = Object Relational Mapper => ne ajuta sa interactionam cu baze de date folosing obiecte
-        - practic, vom avea un obiect care va fi mapat la tabela din baza noastra de date
-            => pentru fiecare camp din tabela, vom avea un atribut in clasa noastra
-            => pentru interactiunea cu baza de date (create, read, update, query) avem metode
-
-    Avantaje:
-        - conexiunea si salvarea modificarilor in baza de date sunt realizate de catre biblioteca
-        - avem la dispozitie comenzile de baza pentru interactiunea cu baza de date si nu mai suntem
-          nevoiti sa rulam manual comenzile SQL
-        - totul este scris direct in Python
-
-    Setup:
-        from flask_sqlalchemy import SQLAlechemy
-
-        app = Flask(__name__)
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///<nume_fisier>.db"
-        db = SQLAlchemy(app)
-
-    Definirea unui Model - o clasa care va deveni o tabela in baza de date
-
-    class Student(db.Model):
-        id = db.Column(db.Integer, primary_key=True)
-        name = db.Column(db.String(100))
-        grade = db.Column(db.Float)
-
-    Crearea tabelei:
-
-    with app.app_context():
-        db.create_all()
-
-    Metode de baza pentru interactiunea cu baza de date:
-    - Adaugare element in baza de date:
-    new_student = Student(name="Alice", grade=9.5)
-    db.session.add(new_student)
-    db.session.commit()
-
-    - Interogare baza de date:
-    students = Student.query.all() # returneaza toti studentii din baza de date
-
-    - Update element in baza de date:
-    student = Student.query.get(1) # returneaza studentul cu id-ul
-    student.grade = 10
-    db.session.commit()
-
-    - Stergere element din baza de date:
-    student = Student.query.get(1)
-    db.session.delete(student)
-    db.session.commit()
-
-    - Pentru a face query-uri mai complexe, putem folosi metodele de filtrare:
-    students = Student.query.filter(Student.grade > 9).all() # returneaza toti studentii cu nota mai mare de 9
-    students = Student.query.filter(Student.name == "Ionescu").all() # returneaza studentii cu numele 'Ionescu'
-    student = Student.query.filter(Student.name == "Ionescu").first() # returneaza primul student cu numele 'Ionescu'
-'''
-
-
-
-
 from flask import Flask, request, render_template, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///employees.db"
@@ -172,37 +22,84 @@ class Employee(db.Model):
     senioritate = db.Column(db.String(20), nullable=False)
 
 
+
 @app.route('/')
-def home():
-    employees = db.session.query(Employee).all()
+def home() -> str:
+
+    '''
+    Functia home():
+        - afiseaza toti angajatii din baza de date
+        - permite sortarea dupa salariu, departament sau senioritate
+    '''
+    
+
+    sort = request.args.get("sort")
+
+    if sort == "salary":
+        employees = db.session.query(Employee).order_by(Employee.salariu).all()
+
+    elif sort == "department":
+        employees = db.session.query(Employee).order_by(Employee.departament).all()
+
+    elif sort == "seniority":
+        employees = db.session.query(Employee).order_by(Employee.senioritate).all()
+
+    else:
+        employees = db.session.query(Employee).all()
+
     return render_template('home_sql_alchemy.html', employees=employees)
 
-
 @app.route('/add', methods=["GET", "POST"])
-def add():
+def add() -> str:
+
+    '''
+        Functia add(): adauga un nou angajat in baza de date
+            
+    '''
+
     if request.method == "POST":
         cnp = request.form.get('cnp')
 
         if not (cnp.isdigit() and len(cnp) == 13):
             print("CNP invalid.")
-            return redirect(url_for('add'))
+            return render_template("add_sql_alchemy.html", error="CNP invalid")
+        existing_employee = db.session.query(Employee).get(cnp)
+
+        if existing_employee:
+            return render_template("add_sql_alchemy.html", error="Există deja un angajat cu acest CNP.")
         
         nume = request.form.get('nume')
+
+        if not nume.isalpha():
+            return render_template("add_sql_alchemy.html", error="Nu introduceți cifre sau mai mult de un nume în acest câmp.")
+        
         prenume = request.form.get('prenume')
+
+        if not prenume.replace(" ", "").replace("-", "").isalpha():
+            return render_template("add_sql_alchemy.html", error="Prenumele trebuie să conțină numai litere.")
+
         varsta = int(request.form.get('varsta'))
         salariu = int(request.form.get('salariu'))
-        departament = request.form.get('departament')
+        departament = request.form.get('departament').lower()
         senioritate = request.form.get('senioritate')
         new_employee = Employee(cnp=cnp, nume=nume, prenume=prenume, varsta=varsta, salariu=salariu, departament=departament, senioritate=senioritate)
         db.session.add(new_employee)
         db.session.commit()
+        logging.info("Angajat adăugat")
         return redirect(url_for('home'))
 
     return render_template('add_sql_alchemy.html')
 
 
 @app.route('/update', methods=["GET", "POST"])
-def update():
+def update() -> str:
+
+    '''
+        Functia update():
+        - modifica datele unui angajat existent
+        - permite actualizarea unui camp selectate de utilizator
+    '''
+
     if request.method == "POST":
         cnp = request.form.get("cnp")
         field = request.form.get("field")
@@ -212,43 +109,56 @@ def update():
 
         if employee:
             if field == "nume":
+                if not value.isalpha():
+                    return render_template("update_sql_alchemy.html", error="Nu introduceți cifre sau mai mult de un nume în acest câmp.")
                 employee.nume = value
+                logging.info("nume actualizat")
 
             elif field == "prenume":
+                if not value.replace(" ", "").replace("-", "").isalpha():
+                    return render_template("update_sql_alchemy.html", error="Prenumele trebuie să conțină numai litere.")
                 employee.prenume = value
+                logging.info("prenume actualizat")
 
             elif field == "varsta":
                 try:
                     value = int(value)
                     if value >= 18:
                         employee.varsta = value
+                        logging.info("vârstă actualizată")
                     else:
-                        print("Vârsta trebuie să fie cel puțin 18.")
+                        logging.warning("Vârstă sub 18 ani.")
                 except ValueError:
-                    print("Introduceți un număr valid")
+                    logging.warning("Input vârstă nu este un număr.")
 
             elif field == "salariu":
                 try:
                     value = int(value)
                     if value >= 4050:
                         employee.salariu = value
+                        logging.info("salariu actualizat")
                     else:
-                        print("Salariul trebuie să fie cel puțin 4050.")
+                        logging.warning("Salariu < 4050")
                 except ValueError:
-                    print("Introduceți un număr valid")
+                    logging.warning("Input salariu nu este un număr.")
+                    return render_template("update_sql_alchemy.html", error="Introduceți un număr valid")
 
             elif field == "departament":
                 employee.departament = value.lower()
+                logging.info("departament actualizat")
 
             elif field == "senioritate":
                 value = value.lower()
                 if value in ["junior", "mid", "senior"]:
                     employee.senioritate = value
+                    logging.info("senioritate actualizată")
                 else:
-                    print("Senioritate invalidă.")
+                    logging.warning("senioritate invalidă")
+                    return render_template("update_sql_alchemy.html", error="senioritate invalidă")
 
             db.session.commit()
         else:
+            logging.warning("CNP_update nu există în baza de date")
             return render_template("update_sql_alchemy.html", error="Angajatul nu există sau cnp invalid")
 
         return redirect(url_for("home"))
@@ -257,7 +167,13 @@ def update():
 
 
 @app.route('/delete', methods=["GET", "POST"])
-def delete():
+def delete() -> str:
+
+    '''
+    Functia delete():
+        - sterge un angajat din baza de date pe baza CNP-ului
+    '''
+
     if request.method == "POST":
         cnp = request.form.get('cnp')
 
@@ -267,7 +183,8 @@ def delete():
             db.session.delete(employee)
             db.session.commit()
         else:
-            return render_template("update_sql_alchemy.html", error="Angajatul nu există sau cnp invalid")
+            logging.warning("CNP_delete nu există în baza de date")
+            return render_template("update_sql_alchemy.html", error="Angajatul nu există sau cnp invalid"),
 
         return redirect(url_for('home'))
 

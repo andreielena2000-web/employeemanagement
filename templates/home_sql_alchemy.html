@@ -118,6 +118,22 @@
             font-size: 0.8rem;
             font-weight: 700;
         }
+
+        .sort-box {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    }
+
+        .sort-box select {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 2px solid #e5e7eb;
+    font-size: 0.95rem;
+    font-family: inherit;
+    cursor: pointer;
+    }
+
     </style>
 </head>
 <body>
@@ -130,6 +146,17 @@
             <a href="{{ url_for('update') }}">🔄 Update</a>
             <a href="{{ url_for('delete') }}">🗑️ Delete</a>
         </div>
+
+    <div class="sort-box">
+        <form method="GET" action="{{ url_for('home') }}">
+            <select name="sort" onchange="this.form.submit()">
+                <option value="">Sort by</option>
+                <option value="salary">Salary</option>
+                <option value="department">Department</option>
+                <option value="seniority">Seniority</option>
+            </select>
+        </form>
+    </div>
 
         <h3>Employees List</h3>
 
