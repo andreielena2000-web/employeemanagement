@@ -184,7 +184,7 @@ def delete() -> str:
             db.session.commit()
         else:
             logging.warning("CNP_delete nu există în baza de date")
-            return render_template("update_sql_alchemy.html", error="Angajatul nu există sau cnp invalid"),
+            return render_template("delete_sql_alchemy.html", error="Angajatul nu există sau cnp invalid")
 
         return redirect(url_for('home'))
 
