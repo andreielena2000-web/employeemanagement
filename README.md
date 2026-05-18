@@ -21,7 +21,6 @@ De asemenea, aplicația permite sortarea angajaților după:
 - HTML
 - CSS
 - Jinja2
-- SQLite
 
 ## Funcționalități
 - Adăugare angajat
